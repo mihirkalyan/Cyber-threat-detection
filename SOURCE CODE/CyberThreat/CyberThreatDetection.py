@@ -33,6 +33,7 @@ from sklearn.naive_bayes import BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from threat_brief import generate_brief
 
 
 main = tkinter.Tk()
@@ -46,10 +47,12 @@ global X, Y
 global doc
 global label_names
 global X_train, X_test, y_train, y_test
-global lstm_acc,cnn_acc,svm_acc,knn_acc,dt_acc,random_acc,nb_acc
-global lstm_precision,cnn_precision,svm_precision,knn_precision,dt_precision,random_precision,nb_precision
-global lstm_recall,cnn_recall,svm_recall,knn_recall,dt_acc,random_recall,nb_recall
-global lstm_fm,cnn_fm,svm_fm,knn_fm,dt_fm,random_fm,nb_fm
+global lstm_acc,dnn_acc,svm_acc,knn_acc,dt_acc,random_acc,nb_acc
+global lstm_precision,dnn_precision,svm_precision,knn_precision,dt_precision,random_precision,nb_precision
+global lstm_recall,dnn_recall,svm_recall,knn_recall,dt_acc,random_recall,nb_recall
+global lstm_fm,dnn_fm,svm_fm,knn_fm,dt_fm,random_fm,nb_fm
+last_model_name = ""
+last_detected_classes = []
 
 def upload():
     global filename
@@ -99,7 +102,7 @@ def eventVector():
 def neuralNetwork():
     text.delete('1.0', END)
     global lstm_acc,lstm_precision,lstm_fm,lstm_recall
-    global cnn_acc,cnn_precision,cnn_fm,cnn_recall
+    global dnn_acc,dnn_precision,dnn_fm,dnn_recall
     Y1 = Y.reshape((len(Y),1))
     X_train1, X_test1, y_trains1, y_tests1 = train_test_split(X, Y1, test_size=0.2)
     print(X_train1.shape)
@@ -130,7 +133,7 @@ def neuralNetwork():
     model.add(Dense(y_train1.shape[1], activation='softmax'))
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     print(model.summary())
-    hist = model.fit(X_train2, y_train1, epochs=1, batch_size=64)
+    hist = model.fit(X_train2, y_train1, epochs=10, batch_size=64)
     prediction_data = model.predict(X_test2)
     prediction_data = np.argmax(prediction_data, axis=1)
     y_test1 = np.argmax(y_test1, axis=1)
@@ -142,19 +145,6 @@ def neuralNetwork():
     lstm_precision = precision_score(y_test1,prediction_data,average='macro') * 100
     lstm_recall = recall_score(y_test1,prediction_data,average='macro') * 100
     lstm_fm = f1_score(y_test1,prediction_data,average='macro') * 100
-    
-    if lstm_precision < 1:
-        lstm_precision = lstm_precision * 100
-    else:
-        lstm_precision = lstm_precision * 10
-    if lstm_recall < 1:
-        lstm_recall = lstm_recall * 100
-    else:
-        lstm_recall = lstm_recall * 10
-    if lstm_fm < 1:
-        lstm_fm = lstm_fm * 100
-    else:
-        lstm_fm = lstm_fm * 10
         
     text.insert(END,"Deep Learning LSTM Extension Accuracy\n\n")
     text.insert(END,"LSTM Accuracy  : "+str(lstm_acc)+"\n")
@@ -178,30 +168,21 @@ def neuralNetwork():
     prediction_data = cnn_model.predict(X_test1)
     prediction_data = np.argmax(prediction_data, axis=1)
     y_test1 = np.argmax(y_test1, axis=1)
-    cnn_acc = accuracy_score(y_test1,prediction_data)*100
+    dnn_acc = accuracy_score(y_test1,prediction_data)*100
     acc = hist1.history['accuracy']
-    cnn_acc = acc[9] * 100
-    cnn_precision = precision_score(y_test1,prediction_data,average='macro') * 100
-    cnn_recall = recall_score(y_test1,prediction_data,average='macro') * 100
-    cnn_fm = f1_score(y_test1,prediction_data,average='macro') * 100
-    if cnn_precision < 1:
-        cnn_precision = cnn_precision * 100
-    else:
-        cnn_precision = cnn_precision * 10
-    if cnn_recall < 1:
-        cnn_recall = cnn_recall * 100
-    else:
-        cnn_recall = cnn_recall * 10
-    if cnn_fm < 1:
-        cnn_fm = cnn_fm * 100
-    else:
-        cnn_fm = cnn_fm * 10    
+    dnn_acc = acc[9] * 100
+    dnn_precision = precision_score(y_test1,prediction_data,average='macro') * 100
+    dnn_recall = recall_score(y_test1,prediction_data,average='macro') * 100
+    dnn_fm = f1_score(y_test1,prediction_data,average='macro') * 100    
         
-    text.insert(END,"Deep Learning CNN Accuracy\n\n")
-    text.insert(END,"CNN Accuracy  : "+str(cnn_acc)+"\n")
-    text.insert(END,"CNN Precision : "+str(cnn_precision)+"\n")
-    text.insert(END,"CNN Recall    : "+str(cnn_recall)+"\n")
-    text.insert(END,"CNN Fmeasure  : "+str(cnn_fm)+"\n")
+    text.insert(END,"Deep Learning DNN Accuracy\n\n")
+    text.insert(END,"DNN Accuracy  : "+str(dnn_acc)+"\n")
+    text.insert(END,"DNN Precision : "+str(dnn_precision)+"\n")
+    text.insert(END,"DNN Recall    : "+str(dnn_recall)+"\n")
+    text.insert(END,"DNN Fmeasure  : "+str(dnn_fm)+"\n")
+    global last_model_name, last_detected_classes
+    last_model_name = "DNN"
+    last_detected_classes = list(set(le.inverse_transform(prediction_data)))
 
 def svmClassifier():
     text.delete('1.0', END)
@@ -209,8 +190,6 @@ def svmClassifier():
     cls = svm.SVC(C=2.0,gamma='scale',kernel = 'linear', random_state = 0)
     cls.fit(X_train, y_train)
     prediction_data = cls.predict(X_test)
-    for i in range(1,300):
-        prediction_data[i] = 30
     svm_acc = accuracy_score(y_test,prediction_data)*100
     svm_precision = precision_score(y_test, prediction_data,average='macro') * 100
     svm_recall = recall_score(y_test, prediction_data,average='macro') * 100
@@ -220,6 +199,9 @@ def svmClassifier():
     text.insert(END,"SVM Recall : "+str(svm_recall)+"\n")
     text.insert(END,"SVM FMeasure : "+str(svm_fm)+"\n")
     text.insert(END,"SVM Accuracy : "+str(svm_acc)+"\n")
+    global last_model_name, last_detected_classes
+    last_model_name = "SVM"
+    last_detected_classes = list(set(le.inverse_transform(prediction_data)))
 
 def knn():
     global knn_precision
@@ -227,12 +209,10 @@ def knn():
     global knn_fm
     global knn_acc
     text.delete('1.0', END)
-    cls = KNeighborsClassifier(n_neighbors = 10) 
-    cls.fit(X_train, y_train) 
-    text.insert(END,"KNN Prediction Results\n\n") 
+    cls = KNeighborsClassifier(n_neighbors = 10)
+    cls.fit(X_train, y_train)
+    text.insert(END,"KNN Prediction Results\n\n")
     prediction_data = cls.predict(X_test)
-    for i in range(1,300):
-        prediction_data[i] = 30
     knn_precision = precision_score(y_test, prediction_data,average='macro') * 100
     knn_recall = recall_score(y_test, prediction_data,average='macro') * 100
     knn_fm = f1_score(y_test, prediction_data,average='macro') * 100
@@ -241,6 +221,9 @@ def knn():
     text.insert(END,"KNN Recall : "+str(knn_recall)+"\n")
     text.insert(END,"KNN FMeasure : "+str(knn_fm)+"\n")
     text.insert(END,"KNN Accuracy : "+str(knn_acc)+"\n")
+    global last_model_name, last_detected_classes
+    last_model_name = "KNN"
+    last_detected_classes = list(set(le.inverse_transform(prediction_data)))
 
 def randomForest():
     text.delete('1.0', END)
@@ -250,10 +233,8 @@ def randomForest():
     global random_fm
     cls = RandomForestClassifier(n_estimators=5, random_state=0)
     cls.fit(X_train, y_train)
-    text.insert(END,"Random Forest Prediction Results\n") 
+    text.insert(END,"Random Forest Prediction Results\n")
     prediction_data = cls.predict(X_test)
-    for i in range(1,400):
-        prediction_data[i] = 30
     random_precision = precision_score(y_test, prediction_data,average='macro') * 100
     random_recall = recall_score(y_test, prediction_data,average='macro') * 100
     random_fm = f1_score(y_test, prediction_data,average='macro') * 100
@@ -262,6 +243,9 @@ def randomForest():
     text.insert(END,"Random Forest Recall : "+str(random_recall)+"\n")
     text.insert(END,"Random Forest FMeasure : "+str(random_fm)+"\n")
     text.insert(END,"Random Forest Accuracy : "+str(random_acc)+"\n")
+    global last_model_name, last_detected_classes
+    last_model_name = "Random Forest"
+    last_detected_classes = list(set(le.inverse_transform(prediction_data)))
 
 
 def naiveBayes():
@@ -272,10 +256,8 @@ def naiveBayes():
     text.delete('1.0', END)
     cls = BernoulliNB(binarize=0.0)
     cls.fit(X_train, y_train)
-    text.insert(END,"Naive Bayes Prediction Results\n\n") 
+    text.insert(END,"Naive Bayes Prediction Results\n\n")
     prediction_data = cls.predict(X_test)
-    for i in range(1,500):
-        prediction_data[i] = 30
     nb_precision = precision_score(y_test, prediction_data,average='macro') * 100
     nb_recall = recall_score(y_test, prediction_data,average='macro') * 100
     nb_fm = f1_score(y_test, prediction_data,average='macro') * 100
@@ -284,6 +266,9 @@ def naiveBayes():
     text.insert(END,"Naive Bayes Recall : "+str(nb_recall)+"\n")
     text.insert(END,"Naive Bayes FMeasure : "+str(nb_fm)+"\n")
     text.insert(END,"Naive Bayes Accuracy : "+str(nb_acc)+"\n")
+    global last_model_name, last_detected_classes
+    last_model_name = "Naive Bayes"
+    last_detected_classes = list(set(le.inverse_transform(prediction_data)))
     
 
 def decisionTree():
@@ -304,38 +289,49 @@ def decisionTree():
     text.insert(END,"Decision Tree Recall : "+str(dt_recall)+"\n")
     text.insert(END,"Decision Tree FMeasure : "+str(dt_fm)+"\n")
     text.insert(END,"Decision Tree Accuracy : "+str(dt_acc)+"\n")
+    global last_model_name, last_detected_classes
+    last_model_name = "Decision Tree"
+    last_detected_classes = list(set(le.inverse_transform(prediction_data)))
 
 def graph():
-    height = [knn_acc,nb_acc,dt_acc,svm_acc,random_acc,lstm_acc,cnn_precision]
-    bars = ('KNN Accuracy', 'NB Accuracy','DT Accuracy','SVM Accuracy','RF Accuracy','LSTM Accuracy','CNN Accuracy')
+    height = [knn_acc,nb_acc,dt_acc,svm_acc,random_acc,lstm_acc,dnn_precision]
+    bars = ('KNN Accuracy', 'NB Accuracy','DT Accuracy','SVM Accuracy','RF Accuracy','LSTM Accuracy','DNN Accuracy')
     y_pos = np.arange(len(bars))
     plt.bar(y_pos, height)
     plt.xticks(y_pos, bars)
     plt.show()
 
 def precisiongraph():
-    height = [knn_precision,nb_precision,dt_precision,svm_precision,random_precision,lstm_precision,cnn_precision]
-    bars = ('KNN Precision', 'NB Precision','DT Precision','SVM Precision','RF Precision','LSTM Precision','CNN Precision')
+    height = [knn_precision,nb_precision,dt_precision,svm_precision,random_precision,lstm_precision,dnn_precision]
+    bars = ('KNN Precision', 'NB Precision','DT Precision','SVM Precision','RF Precision','LSTM Precision','DNN Precision')
     y_pos = np.arange(len(bars))
     plt.bar(y_pos, height)
     plt.xticks(y_pos, bars)
     plt.show()
 
 def recallgraph():
-    height = [knn_recall,nb_recall,dt_recall,svm_recall,random_recall,lstm_recall,cnn_recall]
-    bars = ('KNN Recall', 'NB Recall','DT Recall','SVM Recall','RF Recall','LSTM Recall','CNN Recall')
+    height = [knn_recall,nb_recall,dt_recall,svm_recall,random_recall,lstm_recall,dnn_recall]
+    bars = ('KNN Recall', 'NB Recall','DT Recall','SVM Recall','RF Recall','LSTM Recall','DNN Recall')
     y_pos = np.arange(len(bars))
     plt.bar(y_pos, height)
     plt.xticks(y_pos, bars)
     plt.show()
 
 def fmeasuregraph():
-    height = [knn_fm,nb_fm,dt_fm,svm_fm,random_fm,lstm_fm,cnn_fm]
-    bars = ('KNN FMeasure', 'NB FMeasure','DT FMeasure','SVM FMeasure','RF FMeasure','LSTM FMeasure','CNN FMeasure')
+    height = [knn_fm,nb_fm,dt_fm,svm_fm,random_fm,lstm_fm,dnn_fm]
+    bars = ('KNN FMeasure', 'NB FMeasure','DT FMeasure','SVM FMeasure','RF FMeasure','LSTM FMeasure','DNN FMeasure')
     y_pos = np.arange(len(bars))
     plt.bar(y_pos, height)
     plt.xticks(y_pos, bars)
     plt.show()  
+
+def generateThreatBrief():
+    global last_model_name, last_detected_classes
+    if not last_detected_classes:
+        text.insert(END, "\n[ERROR] Run a model first before generating a threat brief.\n")
+        return
+    brief = generate_brief(last_detected_classes, last_model_name)
+    text.insert(END, "\n" + brief + "\n")
 
 font = ('times', 16, 'bold')
 title = Label(main, text='Cyber Threat Detection Based on Artificial Neural Networks Using Event Profiles')
@@ -404,6 +400,10 @@ precisionButton.config(font=font1)
 fmButton = Button(main, text="FMeasure Comparison Graph", command=fmeasuregraph)
 fmButton.place(x=320,y=650)
 fmButton.config(font=font1)
+
+briefButton = Button(main, text="Generate Threat Brief", command=generateThreatBrief,
+                     font=('times', 13, 'bold'), bg='brown', fg='white')
+briefButton.place(x=50,y=700)
 
 main.config(bg='turquoise')
 main.mainloop()
