@@ -107,3 +107,14 @@ python "SOURCE CODE/CyberThreat/diagrams.py"
 5. **Run individual models** — SVM, KNN, RF, NB, DT
 6. **Generate Threat Brief** — View analyst-readable intelligence
 7. **Comparison Graphs** — View Accuracy / Precision / Recall / F1 charts
+## Prerequisites
+
+- Python 3.8+
+- TensorFlow / Keras
+- scikit-learn
+- pandas, numpy
+- matplotlib
+
+## License
+
+MIT License
